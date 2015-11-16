@@ -1,12 +1,15 @@
 package com.jakespringer.reagne;
 
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import com.jakespringer.reagne.fundamental.Notifier;
+import com.jakespringer.reagne.fundamental.Observable;
+import com.jakespringer.reagne.fundamental.Subscribable;
 import com.jakespringer.reagne.game.World;
 import com.jakespringer.reagne.util.Command;
 
 public class Reagne {
-    private static Queue<Command> commandQueue = new LinkedList<>();
+    private static Queue<Command> mainThread = new ConcurrentLinkedQueue<>();
     private static boolean running = true;
     private static World theWorld;
 
@@ -18,13 +21,13 @@ public class Reagne {
      * A stream that fires every tick. Will stream the delta time between each
      * tick.
      */
-    public static final Signal<Double> continuous = new Signal<>(0.0);
+    public static final Observable<Double> continuous = new Observable<>(0.0);
 
     /**
      * A stream that fires once at the start of when {@link Reagne#run()} is
      * called.
      */
-    public static final Signal<Object> initialize = new Signal<>(new Object());
+    public static final Notifier initialize = new Subscribable();
 
     /**
      * Queues a command for executing during the next update loop.
@@ -33,10 +36,19 @@ public class Reagne {
      *            the command to execute
      */
     public static void queueCommand(Command command) {
-        if (command == null)
+        if (command == null) {
             throw new NullPointerException();
-//        commandQueue.add(command);
+        }
+        
         command.act();
+    }
+    
+    public static void onMainThread(Command command) {
+        if (command == null) {
+            throw new NullPointerException();
+        }
+        
+        mainThread.offer(command);
     }
 
     /**
@@ -44,7 +56,7 @@ public class Reagne {
      */
     public static void run() {
         // initialize the game
-        initialize.send(initialize.get());
+        ((Subscribable) initialize).alert();
         dispatchCommands();
 
         // run the game loop
@@ -53,7 +65,7 @@ public class Reagne {
         while (running) {
             currentTime = System.nanoTime();
             double deltaTime = ((double) currentTime - (double) previousTime) * 0.000001;
-            continuous.send(Double.valueOf(deltaTime));
+            continuous.set(Double.valueOf(deltaTime));
             dispatchCommands();
             previousTime = currentTime;
         }
@@ -80,6 +92,13 @@ public class Reagne {
     public static World world() {
         return theWorld;
     }
+    
+    /**
+     * Shorthand for Reagne.continuous.get().
+     */
+    public static double dt() {
+        return Reagne.continuous.get();
+    }
 
     /**
      * Returns the default resource folder.
@@ -87,14 +106,15 @@ public class Reagne {
      * @return the resource folder
      */
     public static String getResourceFolder() {
-        return "./";
+        return "./res";
     }
 
     private Reagne() {} // disable construction of Reagens
 
     private static void dispatchCommands() {
-//        while (!commandQueue.isEmpty()) {
-//            commandQueue.remove().act();
-//        }
+        int i=0; // don't allow anything to lock up main thread, spread it out
+        while (!mainThread.isEmpty() && (++i) < 16) {
+            mainThread.remove().act();
+        }
     }
 }

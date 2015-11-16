@@ -1,8 +1,9 @@
 package com.jakespringer.reagne.test;
 
 import com.jakespringer.reagne.Reagne;
+import com.jakespringer.reagne.fx.Window;
 import com.jakespringer.reagne.game.World;
-import com.jakespringer.reagne.gfx.Window;
+import com.jakespringer.reagne.res.Resources;
 import java.io.File;
 
 public class PositionTest {
@@ -13,10 +14,10 @@ public class PositionTest {
         final World world = new World();
 
         Window.initialize(1200, 800, "Reagen Test");
-
-//        Input.whileKeyPressed(Keyboard.KEY_0).forEach(x -> System.out.println("Time elapsed: " + x));
         world.add(new Player());
 
+        System.out.println(Resources.getSprite("levels.test").get());
+        
         Reagne.run();
     }
 }

@@ -1,23 +1,23 @@
 package com.jakespringer.reagne.input;
 
-import com.jakespringer.reagne.Reagne;
-import com.jakespringer.reagne.Signal;
-import com.jakespringer.reagne.gfx.Window;
-import com.jakespringer.reagne.math.Vec2;
-import com.jakespringer.reagne.util.Event;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
+import com.jakespringer.reagne.Reagne;
+import com.jakespringer.reagne.fundamental.Notifier;
+import com.jakespringer.reagne.fundamental.Observable;
+import com.jakespringer.reagne.fx.Window;
+import com.jakespringer.reagne.math.Vec2;
 
 public class Input {
 
     public static final boolean KEY_PRESSED = true;
     public static final boolean KEY_RELEASED = false;
 
-    public static final Signal<Integer> onKeyPress = new Signal<>(0);
-    public static final Signal<Integer> onKeyRelease = new Signal<>(0);
-    public static final Signal<Integer> onMousePress = new Signal<>(0);
-    public static final Signal<Integer> onMouseRelease = new Signal<>(0);
+    public static final Observable<Integer> onKeyPress = new Observable<>(0);
+    public static final Observable<Integer> onKeyRelease = new Observable<>(0);
+    public static final Observable<Integer> onMousePress = new Observable<>(0);
+    public static final Observable<Integer> onMouseRelease = new Observable<>(0);
 
     private static Vec2 mouse;
     private static Vec2 mouseDelta;
@@ -39,17 +39,17 @@ public class Input {
         Reagne.continuous.forEach(dt -> {
             while (Keyboard.next()) {
                 if (Keyboard.getEventKeyState() == KEY_PRESSED) {
-                    onKeyPress.send(Keyboard.getEventKey());
+                    onKeyPress.set(Keyboard.getEventKey());
                 } else /* ..getEventKeyState() == KEY_RELEASED */ {
-                    onKeyRelease.send(Keyboard.getEventKey());
+                    onKeyRelease.set(Keyboard.getEventKey());
                 }
             }
 
             while (Mouse.next()) {
                 if (Mouse.getEventButtonState() == KEY_PRESSED) {
-                    onMousePress.send(Mouse.getEventButton());
+                    onMousePress.set(Mouse.getEventButton());
                 } else /* ..getEventButtonState() == KEY_RELEASED */ {
-                    onMouseRelease.send(Mouse.getEventButton());
+                    onMouseRelease.set(Mouse.getEventButton());
                 }
             }
 
@@ -74,37 +74,34 @@ public class Input {
         });
     }
 
-    public static Signal<Boolean> isKeyPressed(final int key) {
-        return new Signal<>(false)
-                .sendOn(onKeyPress.filter(x -> x == key), (k, x) -> true)
-                .sendOn(onKeyRelease.filter(x -> x == key), (k, x) -> false);
+    public static Observable<Boolean> isKeyPressed(final int key) {
+        Observable<Boolean> observable = new Observable<>(false);
+        onKeyPress.filter(x -> x == key).trigger(observable, () -> true);
+        onKeyRelease.filter(x -> x == key).trigger(observable, () -> false);
+        return observable;
     }
 
-    public static Event whenKeyPressed(final int key) {
-        return new Event()
-                .sendOn(onKeyPress.filter(x -> x == key));
+    public static Notifier whenKeyPressed(final int key) {
+        return onKeyPress.filter(x -> x == key).toNotifier();
     }
 
-    public static Event whenKeyReleased(final int key) {
-        return new Event()
-                .sendOn(onKeyPress.filter(x -> x == key));
+    public static Notifier whenKeyReleased(final int key) {
+        return onKeyPress.filter(x -> x == key).toNotifier();
     }
 
-    public static Event whenMousePressed(final int key) {
-        return new Event()
-                .sendOn(onMousePress.filter(x -> x == key));
+    public static Notifier whenMousePressed(final int key) {
+        return onMousePress.filter(x -> x == key).toNotifier();
     }
 
-    public static Event whenMouseReleased(final int key) {
-        return new Event()
-                .sendOn(onMousePress.filter(x -> x == key));
+    public static Notifier whenMouseReleased(final int key) {
+        return onMousePress.filter(x -> x == key).toNotifier();
     }
 
-    public static Signal<Double> whileKeyDown(final int key) {
+    public static Observable<Double> whileKeyDown(final int key) {
         return Reagne.continuous.filter(isKeyPressed(key));
     }
 
-    public static Signal<Double> whileKeyUp(final int key) {
+    public static Observable<Double> whileKeyUp(final int key) {
         return Reagne.continuous.filter(x -> !isKeyPressed(key).get());
     }
 

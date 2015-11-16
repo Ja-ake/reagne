@@ -5,6 +5,8 @@ import static org.lwjgl.opengl.GL11.glVertex2d;
 
 public class Vec2 {
 
+    public static Vec2 ORIGIN = new Vec2();
+    
     public final double x;
     public final double y;
 

@@ -1,26 +1,27 @@
 package com.jakespringer.reagne.game;
 
-import com.jakespringer.reagne.Reagne;
-import com.jakespringer.reagne.Signal;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
+import com.jakespringer.reagne.fundamental.Observable;
+import com.jakespringer.reagne.fundamental.Subscriber;
 
 public abstract class AbstractEntity implements Entity {
 
-    private final List<Signal> signals = new LinkedList();
+    private final List<Observable<?>> observables = new LinkedList<>();
+    private final List<Subscriber> subscribers = new LinkedList<>();
 
-    public void add(Signal... signalArray) {
-        signals.addAll(Arrays.asList(signalArray));
+    public void mark(Observable<?>... observableArray) {
+        observables.addAll(Arrays.asList(observableArray));
+    }
+    
+    public void mark(Subscriber... subscriberList) {
+        subscribers.addAll(Arrays.asList(subscriberList));
     }
 
     @Override
     public void destroy() {
-        signals.forEach(Signal::remove);
-    }
-
-    public void onUpdate(Consumer<Double> action) {
-        signals.add(Reagne.continuous.forEach(action));
+        observables.forEach(Observable::clear);
+        subscribers.forEach(Subscriber::call);
     }
 }
